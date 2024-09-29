@@ -11,6 +11,10 @@ load_dotenv()
 
 now = dat.datetime.now()
 
+with open("filered-words.txt", "r") as f:
+    filtered_words = f.read().splitlines()
+print(filtered_words)
+
 # Access the API key
 API_KEY = os.getenv('API_KEY')
 
@@ -117,16 +121,25 @@ while userIn != "exit()":
     with open("memory.txt", "a") as mem:
         for chunk in completion:
             if chunk.choices[0].delta.content:
-                out.append(chunk.choices[0].delta.content)
+
+                word = chunk.choices[0].delta.content
+                new_word = chunk.choices[0].delta.content.strip()
+                if new_word in filtered_words:
+                    out.append(" FILTERED")
+                else:
+                    out.append(word)
+
             elif chunk.choices[0].delta.tool_calls:
                 for tool_call in chunk.choices[0].delta.tool_calls:
                     if tool_call.function.name == "get_weather":
                         function_args = json.loads(tool_call.function.arguments)
                         weather_info = get_weather(**function_args)
                         out.append(weather_info)
-        
+
+
         full_response = "".join(out)
-        print(full_response)  # Print the response to console
+        # print(out)
+        # print(full_response)  # Print the response to console
         text_to_speech(full_response, 1, 210)
         mem.write('user: ' + userIn + "\n")
         mem.write('you: ' + full_response + "\n")
