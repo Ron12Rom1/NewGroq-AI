@@ -4,27 +4,30 @@ from groq import Groq
 from dotenv import load_dotenv
 import datetime as dat
 import json
-
 from tools.RobotVoice import text_to_speech
+import base64
 
 load_dotenv()
 
 now = dat.datetime.now()
 
+# Access the API key
+API_KEY = os.getenv('API_KEY')
+client = Groq(api_key=API_KEY)
+
+with open("who-are-you.txt", "r") as f1:
+    you_are = f1.read()
+
+
 with open("filered-words.txt", "r") as f:
     filtered_words = f.read().splitlines()
 print(filtered_words)
-
-# Access the API key
-API_KEY = os.getenv('API_KEY')
-
-client = Groq(api_key=API_KEY)
 
 def get_current_location():
     print("Called get_current_location")
     return "Beer Sheva, Israel"
 
-def get_weather(location=None, unit="celsius"):
+def get_weather(location="0", unit="celsius"):
     print("Called get_weather")
     try:
         if location is None:
@@ -67,9 +70,36 @@ def get_weather(location=None, unit="celsius"):
         print(f"An error occurred: {str(e)}")
         return f"An error occurred while fetching the weather: {str(e)}"
 
-with open("who-are-you.txt", "r") as f1:
-    you_are = f1.read()
+def visualize_picturs(path, prompt):
+    print("Called visualize_picturs")
+    if os.path.exists(path):
+        conversation = []
+        
+        def encode_image(image_path):
+            with open(image_path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode('utf-8')
 
+        base64_image = encode_image(path)
+        message_content = [
+            {"type": "text", "text": prompt},
+            {
+                "type": "image_url",
+                "image_url": {
+                    "url": f"data:image/jpeg;base64,{base64_image}",
+                },
+            },
+        ]
+        conversation.append({"role": "user", "content": message_content})
+        response = client.chat.completions.create(
+                model="llava-v1.5-7b-4096-preview",
+                messages=conversation,
+                max_tokens=1024,
+            )
+        return response.choices[0].message.content
+    else: return "error: File not found"
+
+##############################################################################################
+###############################################################################################
 userIn = "Start with an opening line saying that you are ready"
 while userIn != "exit()":
 
@@ -78,30 +108,59 @@ while userIn != "exit()":
 
     completion = client.chat.completions.create(
         model="llama3-70b-8192",
-        tools=[
-            {
-                "type": "function",
-                "function": {
-                    "name": "get_weather",
-                    "description": "Get the current weather for a location",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "location": {
-                                "type": "string",
-                                "description": "The city and country, e.g. London, UK. If not provided, uses the current location."
+        tools = [
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "visualize_picturs",
+                        "description": "Visualize images or photos with a given a prompt",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "prompt": {
+                                    "type": "string",
+                                    "description": "The question you want a response to."
+                                },
+                                "path": {
+                                    "type": "string",
+                                    "description": "The name of the image + .jpg at the end / the path to the image."
+                                }
                             },
-                            "unit": {
-                                "type": "string",
-                                "enum": ["celsius", "fahrenheit"],
-                                "description": "The unit of temperature to use. Defaults to celsius."
-                            }
-                        },
-                        "required": []
+                            "required": ["prompt", "path"]
+                        }
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_current_location",
+                        "description": "Get the current location."
+                    }
+                },
+                {
+                    "type": "function",
+                    "function": {
+                        "name": "get_weather",
+                        "description": "Get the current weather for a location",
+                        "parameters": {
+                            "type": "object",
+                            "properties": {
+                                "location": {
+                                    "type": "string",
+                                    "description": "The city and country, e.g. London, UK. If not provided, uses the current location."
+                                },
+                                "unit": {
+                                    "type": "string",
+                                    "enum": ["celsius", "fahrenheit"],
+                                    "description": "The unit of temperature to use. Defaults to celsius."
+                                }
+                            },
+                            "required": ["location"]
+                        }
                     }
                 }
-            }
-        ],
+            ],
+        
         messages=[
             {"role": "system", "content": str(you_are) + "It is: " + str(dat.datetime.now()) + 
              ".   this is what you remember from our previous conversation: " + str(memory)},
@@ -135,12 +194,21 @@ while userIn != "exit()":
                         function_args = json.loads(tool_call.function.arguments)
                         weather_info = get_weather(**function_args)
                         out.append(weather_info)
+                    if tool_call.function.name == "get_current_location":
+                        current_location = get_current_location()
+                        out.append(current_location)
+                    if tool_call.function.name == "visualize_picturs":
+                        function_args = json.loads(tool_call.function.arguments)
+                        image_path = function_args.get("path")
+                        prompt = function_args.get("prompt")
+                        image_info = visualize_picturs(image_path, prompt)
+                        out.append(image_info)
 
 
         full_response = "".join(out)
         # print(out)
-        # print(full_response)  # Print the response to console
-        text_to_speech(full_response, 1, 210)
+        print(full_response)  # Print the response to console
+      #  text_to_speech(full_response, 1, 210)
         mem.write('user: ' + userIn + "\n")
         mem.write('you: ' + full_response + "\n")
     
