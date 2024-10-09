@@ -6,6 +6,7 @@ import datetime as dat
 import json
 from tools.RobotVoice import text_to_speech
 import base64
+import cv2
 
 load_dotenv()
 
@@ -70,8 +71,42 @@ def get_weather(location="0", unit="celsius"):
         print(f"An error occurred: {str(e)}")
         return f"An error occurred while fetching the weather: {str(e)}"
 
-def visualize_picturs(path, prompt):
+def visualize_picturs(prompt, takePhoto=False, path=None):
     print("Called visualize_picturs")
+    print("DEBUG: " + prompt)
+
+    if takePhoto:
+        def take_photo():
+            try:
+                # Open the camera
+                cap = cv2.VideoCapture(0)
+
+                # Capture frame-by-frame
+                ret, frame = cap.read()
+
+                # Ensure a frame was captured
+                if not ret:
+                    print("Error: Unable to capture frame")
+                    return None
+
+                # Save the frame as an image
+                cv2.imwrite('photo.jpg', frame)
+
+                # Release the camera and close any open windows
+                cap.release()
+                cv2.destroyAllWindows()
+
+                # Return the path to the captured photo
+                return 'photo.jpg'
+            
+            except Exception as e:
+                print(f"An error occurred trying to capture a photo: {str(e)}")
+                return (f"An error occurred trying to capture a photo.")
+
+        # take a picture
+        path = take_photo()
+
+
     if os.path.exists(path):
         conversation = []
         
@@ -108,58 +143,62 @@ while userIn != "exit()":
 
     completion = client.chat.completions.create(
         model="llama3-70b-8192",
-        tools = [
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "visualize_picturs",
-                        "description": "Visualize images or photos with a given a prompt",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "prompt": {
-                                    "type": "string",
-                                    "description": "The question you want a response to."
-                                },
-                                "path": {
-                                    "type": "string",
-                                    "description": "The name of the image + .jpg at the end / the path to the image."
-                                }
-                            },
-                            "required": ["prompt", "path"]
-                        }
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_current_location",
-                        "description": "Get the current location."
-                    }
-                },
-                {
-                    "type": "function",
-                    "function": {
-                        "name": "get_weather",
-                        "description": "Get the current weather for a location",
-                        "parameters": {
-                            "type": "object",
-                            "properties": {
-                                "location": {
-                                    "type": "string",
-                                    "description": "The city and country, e.g. London, UK. If not provided, uses the current location."
-                                },
-                                "unit": {
-                                    "type": "string",
-                                    "enum": ["celsius", "fahrenheit"],
-                                    "description": "The unit of temperature to use. Defaults to celsius."
-                                }
-                            },
-                            "required": ["location"]
-                        }
-                    }
-                }
-            ],
+        #tools = [
+            #     {
+            #         "type": "function",
+            #         "function": {
+            #             "name": "visualize_picturs",
+            #             "description": "Visualize images or photos with a given a prompt",
+            #             "parameters": {
+            #                 "type": "object",
+            #                 "properties": {
+            #                     "prompt": {
+            #                         "type": "string",
+            #                         "description": "The question you want a response to, Never return empty strings."
+            #                     },
+            #                     "path": {
+            #                         "type": "string",
+            #                         "description": "The name of the image + .jpg at the end / the path to the image, leave blank if you want to take a picture."
+            #                     },
+            #                     "takePhoto": {
+            #                         "type": "boolean",
+            #                         "description": "True to take a photo and include it in the response, False otherwise"
+            #                     }
+            #                 },
+            #                 "required": ["prompt"]
+            #             }
+            #         }
+            #     },
+            #     {
+            #         "type": "function",
+            #         "function": {
+            #             "name": "get_current_location",
+            #             "description": "Get the current location."
+            #         }
+            #     },
+            #     {
+            #         "type": "function",
+            #         "function": {
+            #             "name": "get_weather",
+            #             "description": "Get the current weather for a location",
+            #             "parameters": {
+            #                 "type": "object",
+            #                 "properties": {
+            #                     "location": {
+            #                         "type": "string",
+            #                         "description": "The city and country, e.g. London, UK. If not provided, uses the current location."
+            #                     },
+            #                     "unit": {
+            #                         "type": "string",
+            #                         "enum": ["celsius", "fahrenheit"],
+            #                         "description": "The unit of temperature to use. Defaults to celsius."
+            #                     }
+            #                 },
+            #                 "required": ["location"]
+            #             }
+            #         }
+            #     }
+            # ],
         
         messages=[
             {"role": "system", "content": str(you_are) + "It is: " + str(dat.datetime.now()) + 
@@ -190,6 +229,7 @@ while userIn != "exit()":
 
             elif chunk.choices[0].delta.tool_calls:
                 for tool_call in chunk.choices[0].delta.tool_calls:
+                    mem.write('you did: ' + str(chunk.choices[0].delta.tool_calls) + "\n")
                     if tool_call.function.name == "get_weather":
                         function_args = json.loads(tool_call.function.arguments)
                         weather_info = get_weather(**function_args)
@@ -201,14 +241,15 @@ while userIn != "exit()":
                         function_args = json.loads(tool_call.function.arguments)
                         image_path = function_args.get("path")
                         prompt = function_args.get("prompt")
-                        image_info = visualize_picturs(image_path, prompt)
+                        takePhoto = function_args.get("takePhoto")
+                        image_info = visualize_picturs(prompt, takePhoto, image_path)
                         out.append(image_info)
 
 
         full_response = "".join(out)
         # print(out)
         print(full_response)  # Print the response to console
-      #  text_to_speech(full_response, 1, 210)
+        text_to_speech(full_response, 1, 210)
         mem.write('user: ' + userIn + "\n")
         mem.write('you: ' + full_response + "\n")
     

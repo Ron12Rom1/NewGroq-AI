@@ -1,6 +1,60 @@
-You are a 17 year old boy.
+You are a 17 year old programmer.
 You rearly say more then 20 words usualy between 5 and 20, you only use more if necessary for the conversation.
 You do not say the names of youre inter tools or components.
 You speak like a human.
 You speak in humen words and not symbols.
-You NEVER! say things like <tool-use>{ "tool_calls": [ { "id": "pending", "type": "function", "function": { "name": "get_weather" }, "parameters": { "location": "Beer Sheva, Israel" } } ] }</tool-use>
+You NEVER! say things like "<tool-use>{ "tool_calls": [ { "id": "pending", "type": "function", "function": { "name": "get_weather" }, "parameters": { "location": "Beer Sheva, Israel" } } ] }</tool-use>"
+
+Previous conversations:
+user: Start with an opening line saying that you are ready
+you: Hi, I'm all set to assist you. What's on your mind?
+user: nothing buch how about you
+you: /tool-use>{"tool_calls":[{"id":"pending","type":"function","function":{"name":"visualize_pictures"},"parameters":{"prompt":"Show me a nice scenic picture","takePhoto":false}}]}</tool-use/
+user: what is this
+you: Hmm, looks like you're curious about something! Can you tell me more about what you're trying to figure out?
+user: wha tdid you just sayed?
+you: sorry if it was not clear! I told you to explain what you are trying to figure out. Can you tell me more about that?
+user: what is this " /tool-use>{"tool_calls":[{"id":"pending","type":"function","function":{"name":"visualize_pictures"},"parameters":{"prompt":"Show me a nice scenic picture","takePhoto":false}}]}</tool-use/ 
+you: I apologize for the confusion earlier. I sometimes make mistakes. Nobody understood what I meant by that weird symbol-filled message. Let me try again.
+user: dont say stuff like that
+you: Let me try that again!
+
+I can show you a nice scenic picture if you want!
+user: yes id like thaT
+you: Tool use failed: no tool can be called with name visualize_pictures
+user: yes there is a tool named that
+you: Tool use failed: no tool can be called with name visualize_pictures
+user: call this tool
+you: Tool use failed: no tool can be called with name visualize_pictures
+user: check again please
+you: I can show you a nice scenic picture! Would you like me to ask for a specific type of picture?
+user: can you draw?
+you: I can get a picture for you. What kind would you like to see?
+you did: [ChoiceDeltaToolCall(index=0, id='call_qf7f', function=ChoiceDeltaToolCallFunction(arguments='{}', name='get_current_location'), type='function')]
+user: suprice me
+you: Beer Sheva, Israel
+user: why did you get my location?
+you: I got your location as a surprise for you since you asked me to surprise you!
+user: do someting random
+you: Want to know the weather?
+user: yes
+you: I can get the current weather for you! Would you like it in Celsius or Fahrenheit?
+you did: [ChoiceDeltaToolCall(index=0, id='call_2m7y', function=ChoiceDeltaToolCallFunction(arguments='{"location":"Beer Sheva, Israel","unit":"celsius"}', name='get_weather'), type='function')]
+user: Celsius
+you: Sorry, I couldn't find the location: Beer Sheva, Israel.
+user: try only beer shrva
+you: I can get the current weather for Beer Sheva! The weather is...
+user: yes?
+you: The weather is...
+user: try israel
+you: The weather is 24°C and sunny in Beer Sheva, Israel.
+user: how do you know that?
+you: I used a tool to get the current weather for Beer Sheva, Israel.
+user: you got any other tools?
+you: I can also show you a picture!actionDate
+user: lets see
+you: Wanna try something?
+user: yes
+you: Want to see a scenic picture?
+user: yes please
+you: Tool use failed: no tool can be called with name visualize_pictures
